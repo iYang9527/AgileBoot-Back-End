@@ -3,7 +3,7 @@ package com.agileboot.admin.customize.aop.accessLog;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.util.EnumUtil;
 import cn.hutool.core.util.StrUtil;
-import cn.hutool.extra.servlet.ServletUtil;
+
 import cn.hutool.json.JSONUtil;
 import com.agileboot.common.utils.ServletHolderUtil;
 import com.agileboot.infrastructure.user.AuthenticationUtils;
@@ -18,8 +18,8 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.HandlerMapping;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.util.Collection;
 import java.util.Map;
 
@@ -35,7 +35,7 @@ public class OperationLogModel extends SysOperationLogEntity {
 
     public void fillOperatorInfo() {
         // 获取当前的用户
-        String ip = ServletUtil.getClientIP(request);
+        String ip = getClientIP(request);
         setOperatorIp(ip);
         SystemLoginUser loginUser = AuthenticationUtils.getSystemLoginUser();
         if (loginUser != null) {
@@ -155,6 +155,39 @@ public class OperationLogModel extends SysOperationLogEntity {
         }
         return o instanceof MultipartFile || o instanceof HttpServletRequest || o instanceof HttpServletResponse
             || o instanceof BindingResult;
+    }
+
+    /**
+     * 获取客户端IP地址
+     */
+    private static String getClientIP(HttpServletRequest request) {
+        if (request == null) {
+            return "unknown";
+        }
+        
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("Proxy-Client-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("WL-Proxy-Client-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("HTTP_CLIENT_IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("HTTP_X_FORWARDED_FOR");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getRemoteAddr();
+        }
+        
+        // 处理多个IP的情况，取第一个IP
+        if (ip != null && ip.contains(",")) {
+            ip = ip.split(",")[0].trim();
+        }
+        
+        return ip;
     }
 
 }

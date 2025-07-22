@@ -6,6 +6,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.aop.Advisor;
 import org.springframework.aop.aspectj.AspectJExpressionPointcut;
 import org.springframework.aop.support.DefaultPointcutAdvisor;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.TransactionDefinition;
@@ -21,6 +22,7 @@ import org.springframework.transaction.interceptor.TransactionInterceptor;
  */
 @Configuration
 @RequiredArgsConstructor
+@ConditionalOnBean(TransactionManager.class)
 public class GlobalTransactionConfig {
 
     /**

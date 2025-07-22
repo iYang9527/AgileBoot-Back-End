@@ -1,6 +1,6 @@
 package com.agileboot.infrastructure.user.base;
 
-import cn.hutool.extra.servlet.ServletUtil;
+import jakarta.servlet.http.HttpServletRequest;
 import com.agileboot.common.utils.ServletHolderUtil;
 import com.agileboot.common.utils.ip.IpRegionUtil;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -54,7 +54,7 @@ public class BaseLoginUser implements UserDetails {
      */
     public void fillLoginInfo() {
         UserAgent userAgent = UserAgent.parseUserAgentString(ServletHolderUtil.getRequest().getHeader("User-Agent"));
-        String ip = ServletUtil.getClientIP(ServletHolderUtil.getRequest());
+        String ip = getClientIP(ServletHolderUtil.getRequest());
 
         this.getLoginInfo().setIpAddress(ip);
         this.getLoginInfo().setLocation(IpRegionUtil.getBriefLocationByIp(ip));
@@ -125,5 +125,37 @@ public class BaseLoginUser implements UserDetails {
         return authorities;
     }
 
+    /**
+     * 获取客户端IP地址
+     */
+    private static String getClientIP(HttpServletRequest request) {
+        if (request == null) {
+            return "unknown";
+        }
+        
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("Proxy-Client-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("WL-Proxy-Client-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("HTTP_CLIENT_IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("HTTP_X_FORWARDED_FOR");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getRemoteAddr();
+        }
+        
+        // 处理多个IP的情况，取第一个IP
+        if (ip != null && ip.contains(",")) {
+            ip = ip.split(",")[0].trim();
+        }
+        
+        return ip;
+    }
 
 }

@@ -1,6 +1,6 @@
 package com.agileboot.infrastructure.annotations.ratelimit;
 
-import cn.hutool.extra.servlet.ServletUtil;
+import jakarta.servlet.http.HttpServletRequest;
 import com.agileboot.common.exception.ApiException;
 import com.agileboot.common.exception.error.ErrorCode;
 import com.agileboot.common.utils.ServletHolderUtil;
@@ -67,7 +67,7 @@ public @interface RateLimit {
         IP {
             @Override
             public String generateCombinedKey(RateLimit rateLimiter) {
-                String clientIP = ServletUtil.getClientIP(ServletHolderUtil.getRequest());
+                String clientIP = getClientIP(ServletHolderUtil.getRequest());
                 return rateLimiter.key() + clientIP;
             }
         },
@@ -102,6 +102,39 @@ public @interface RateLimit {
 
 
         public abstract String generateCombinedKey(RateLimit rateLimiter);
+
+        /**
+         * 获取客户端IP地址
+         */
+        private static String getClientIP(HttpServletRequest request) {
+            if (request == null) {
+                return "unknown";
+            }
+            
+            String ip = request.getHeader("X-Forwarded-For");
+            if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+                ip = request.getHeader("Proxy-Client-IP");
+            }
+            if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+                ip = request.getHeader("WL-Proxy-Client-IP");
+            }
+            if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+                ip = request.getHeader("HTTP_CLIENT_IP");
+            }
+            if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+                ip = request.getHeader("HTTP_X_FORWARDED_FOR");
+            }
+            if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+                ip = request.getRemoteAddr();
+            }
+            
+            // 处理多个IP的情况，取第一个IP
+            if (ip != null && ip.contains(",")) {
+                ip = ip.split(",")[0].trim();
+            }
+            
+            return ip;
+        }
 
     }
 

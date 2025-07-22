@@ -9,7 +9,7 @@ import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.crypto.SecureUtil;
 import cn.hutool.crypto.asymmetric.KeyType;
-import cn.hutool.extra.servlet.ServletUtil;
+import jakarta.servlet.http.HttpServletRequest;
 import com.agileboot.common.config.AgileBootConfig;
 import com.agileboot.common.constant.Constants.Captcha;
 import com.agileboot.common.exception.ApiException;
@@ -31,7 +31,7 @@ import com.agileboot.common.enums.common.LoginStatusEnum;
 import com.agileboot.domain.system.user.db.SysUserEntity;
 import com.google.code.kaptcha.Producer;
 import java.awt.image.BufferedImage;
-import javax.annotation.Resource;
+import jakarta.annotation.Resource;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -203,7 +203,7 @@ public class LoginService {
 
         SysUserEntity entity = redisCache.userCache.getObjectById(loginUser.getUserId());
 
-        entity.setLoginIp(ServletUtil.getClientIP(ServletHolderUtil.getRequest()));
+        entity.setLoginIp(getClientIP(ServletHolderUtil.getRequest()));
         entity.setLoginDate(DateUtil.date());
         entity.updateById();
     }
@@ -217,6 +217,39 @@ public class LoginService {
 
     private boolean isCaptchaOn() {
         return Convert.toBool(guavaCache.configCache.get(ConfigKeyEnum.CAPTCHA.getValue()));
+    }
+
+    /**
+     * 获取客户端IP地址
+     */
+    private static String getClientIP(HttpServletRequest request) {
+        if (request == null) {
+            return "unknown";
+        }
+        
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("Proxy-Client-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("WL-Proxy-Client-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("HTTP_CLIENT_IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("HTTP_X_FORWARDED_FOR");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getRemoteAddr();
+        }
+        
+        // 处理多个IP的情况，取第一个IP
+        if (ip != null && ip.contains(",")) {
+            ip = ip.split(",")[0].trim();
+        }
+        
+        return ip;
     }
 
 }

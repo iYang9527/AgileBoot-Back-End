@@ -1,7 +1,7 @@
 package com.agileboot.admin.customize.async;
 
 import cn.hutool.core.date.DateUtil;
-import cn.hutool.extra.servlet.ServletUtil;
+import jakarta.servlet.http.HttpServletRequest;
 import cn.hutool.extra.spring.SpringUtil;
 import com.agileboot.common.utils.ServletHolderUtil;
 import com.agileboot.common.utils.ip.IpRegionUtil;
@@ -38,7 +38,7 @@ public class AsyncTaskFactory {
             ServletHolderUtil.getRequest().getHeader("User-Agent"));
         // 获取客户端浏览器
         final String browser = userAgent.getBrowser() != null ? userAgent.getBrowser().getName() : "";
-        final String ip = ServletUtil.getClientIP(ServletHolderUtil.getRequest());
+        final String ip = getClientIP(ServletHolderUtil.getRequest());
         final String address = IpRegionUtil.getBriefLocationByIp(ip);
         // 获取客户端操作系统
         final String os = userAgent.getOperatingSystem() != null ? userAgent.getOperatingSystem().getName() : "";
@@ -73,6 +73,39 @@ public class AsyncTaskFactory {
             operationLog.setOperatorLocation(IpRegionUtil.getBriefLocationByIp(operationLog.getOperatorIp()));
             SpringUtil.getBean(SysOperationLogService.class).save(operationLog);
         };
+    }
+
+    /**
+     * 获取客户端IP地址
+     */
+    private static String getClientIP(HttpServletRequest request) {
+        if (request == null) {
+            return "unknown";
+        }
+        
+        String ip = request.getHeader("X-Forwarded-For");
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("Proxy-Client-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("WL-Proxy-Client-IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("HTTP_CLIENT_IP");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getHeader("HTTP_X_FORWARDED_FOR");
+        }
+        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
+            ip = request.getRemoteAddr();
+        }
+        
+        // 处理多个IP的情况，取第一个IP
+        if (ip != null && ip.contains(",")) {
+            ip = ip.split(",")[0].trim();
+        }
+        
+        return ip;
     }
 
 }
